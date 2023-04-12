@@ -21,21 +21,50 @@
  * libcoderbot. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <pigpio.h>
+
 #include "encoder.h"
 
 /**
- * @brief Initializes PiGPIO to service the pulses from an encoder.
- * @param enc A pointer to the structure containing the parameters for the
- *            initialization.
+ * @brief Initializes PiGPIO to service the Pulses from an Encoder.
+ * @param pin_a The PIN connected to Channel A.
+ * @param pin_a The PIN connected to Channel B.
  */
-void cbEncoderGPIOInit(const cbEncoder_t* enc, gpio pins[2], int timeout) {
-    for(int i = 0; i < 2; i++) {
-        gpioSetMode(pins[i], PI_INPUT);
-        gpioSetPullUpDown(pins[i], PI_PUD_DOWN);
-        // https://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc
-    }
-    gpioSetISRFuncEx(pins[0], EITHER_EDGE, timeout, cbEncoderISRa, (void*)enc);
-    gpioSetISRFuncEx(pins[1], EITHER_EDGE, timeout, cbEncoderISRb, (void*)enc);
+void cbEncoderGPIOinit(int pin_a, int pin_b) {
+    // Channel A
+    gpioSetMode(pin_a, PI_INPUT);
+    gpioSetPullUpDown(pin_a, PI_PUD_UP);
+    // Channel B
+    gpioSetMode(pin_b, PI_INPUT);
+    gpioSetPullUpDown(pin_b, PI_PUD_UP);
+}
+
+/**
+ * @brief Registers the ISRs for the Encoder's Channels.
+ * @param enc A pointer to the structure containing the parameters for the
+ *            initialization. 
+ * @param pin_a The PIN connected to Channel A.
+ * @param pin_a The PIN connected to Channel B.
+ * @param timeout A time in milliseconds after which the ISR is terminated.
+ * @link  https://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc
+ */
+void cbEncoderRegisterISRs(const cbEncoder_t* enc, int pin_a, int pin_b, int timeout) {
+    // Channel A
+    gpioSetISRFuncEx(pin_a, EITHER_EDGE, timeout, cbEncoderISRa, (void*)enc);
+    // Channel B
+    gpioSetISRFuncEx(pin_b, EITHER_EDGE, timeout, cbEncoderISRb, (void*)enc);
+}
+
+/**
+ * @brief Unregisters the ISRs for the Encoder's Channels.
+ * @param pin_a The PIN connected to Channel A.
+ * @param pin_a The PIN connected to Channel B.
+ */
+void cbEncoderCancelISRs(int pin_a, int pin_b) {
+    // Channel A
+    gpioSetISRFunc(pin_a, EITHER_EDGE, 0, NULL);
+    // Channel B
+    gpioSetISRFunc(pin_b, EITHER_EDGE, 0, NULL);
 }
 
 /**

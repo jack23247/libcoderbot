@@ -109,6 +109,4 @@ typedef enum {
     PIN_ENCODER_RIGHT_B = 25
 } CODERBOT_V5_GPIO;
 
-void cbGPIOinit();
-
 #endif // GPIO_H

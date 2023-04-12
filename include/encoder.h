@@ -24,30 +24,22 @@
 #ifndef ENCODER_H
 #define ENCODER_H
 
+#include <stdint.h>
+
 #include "gpio.h"
-#include "stdint.h"
-
-/*
-//levels: xxxxxxba
-#define LEVELS_NONE(l) (!l)
-#define LEVELS_ONE_OF(l) (l && l < 0b11)
-#define LEVELS_BOTH(l) (l == 0b11)
-
-#define READ_A(l) (l & 0b01)
-#define READ_B(l) ((l & 0b10) >> 1)
-#define WRITE_A(l,d) ((l &= 0b10) |= d)
-#define WRITE_B(l,d) ((l &= 0b01) |= (d << 1))
-*/
 
 struct cbEncoder {
-    gpio last_gpio;
+    int last_gpio;
     uint16_t a, b;
     int direction;
 };
 
 typedef struct cbEncoder cbEncoder_t;
 
-void cbEncoderGPIOInit(const cbEncoder_t* enc, gpio pins[2], int timeout);
+void cbEncoderGPIOinit(int pin_a, int pin_b);
+void cbEncoderRegisterISRs(const cbEncoder_t* enc, int pin_a, int pin_b, int timeout);
+void cbEncoderCancelISRs(int pin_a, int pin_b);
+
 void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata);
 void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata);
 
