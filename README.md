@@ -11,6 +11,20 @@ More informations about the CoderBot platform are available on the [project's we
 | CoderBot V4 Support | Yes        | No            |
 | CoderBot V5 Support | Yes        | Yes           |
 
+## Prerequisites
+
+`libcoderbot` requires the following packages to be installed:
+- `build-essential` - Provides the compiler and a minimal but functional build environment (required, dev).
+- `git` - Provides the git revision control system (optional, dev).
+- `doxygen` - Provides the Doxygen documentation generator (required, dev).
+- `pigpio` - Provides the PiGPIO library (required, runtime, dev).
+
+To install all of the above you can use the command:
+
+```
+apt install pigpio git build-essential doxygen 
+```
+
 ## License
 
 `libcoderbot` is Copyright © 2023, Jacopo Maltagliati and is released under the

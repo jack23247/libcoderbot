@@ -4,3 +4,5 @@ docs/previtera/
 docs/html/
 .vscode/
 .idea/
+*.aarch64
+*.a
