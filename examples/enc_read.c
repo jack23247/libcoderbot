@@ -13,10 +13,10 @@ void init() {
     if (gpioInitialise() < 0) exit(EXIT_FAILURE);
     // Left
     cbEncoderGPIOinit(&cbEncoderLeft);
-    cbEncoderRegisterISRs(&cbEncoderLeft, PIN_ENCODER_LEFT_A, PIN_ENCODER_LEFT_B, 50);
+    cbEncoderRegisterISRs(&cbEncoderLeft, 50);
     // Right
     cbEncoderGPIOinit(&cbEncoderRight);
-    cbEncoderRegisterISRs(&cbEncoderRight, PIN_ENCODER_RIGHT_A, PIN_ENCODER_RIGHT_B, 50);
+    cbEncoderRegisterISRs(&cbEncoderRight, 50);
 }
 
 void terminate() {
