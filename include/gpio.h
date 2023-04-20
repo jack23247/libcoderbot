@@ -107,6 +107,8 @@ typedef enum {
      */ 
     PIN_ENCODER_RIGHT_A = 24,
     PIN_ENCODER_RIGHT_B = 25
-} CODERBOT_V5_GPIO;
+} cbGPIOv5;
+
+typedef cbGPIOv5 cbGPIO_t;
 
 #endif // GPIO_H
