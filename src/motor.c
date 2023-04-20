@@ -25,31 +25,34 @@
 
 #include "motor.h"
 
-static const int MAX_DUTY_CYC 255 //<< Paperino
+static const int MAX_DUTY_CYC = 255; //<< Paperino
 
 void cbMotorGPIOinit(const cbMotor_t* motor) {
     gpioSetPWMrange(motor->pin_fw, MAX_DUTY_CYC);
+    gpioSetPWMfrequency(motor->pin_fw, 100);
     gpioSetPWMrange(motor->pin_bw, MAX_DUTY_CYC);
+    gpioSetPWMfrequency(motor->pin_bw, 100);
 }
 
-int cbMotorMove(const cbMotor_t* motor, cbDir_t direction, float duty_cycle) {
-    if(duty_cycle_percent < .0f || duty_cycle_percent > 1.0f)
-        return -1; // Scaling out of range
-    if(direction = 0) {
+int cbMotorMove(cbMotor_t* motor, cbDir_t direction, float duty_cycle) {
+    if(duty_cycle < .0f || duty_cycle > 1.0f)
+        return 66; // Scaling out of range
+    if(direction == 0) {
         direction = motor->direction; // Use same direction as before
     } else {
         motor->direction = direction;
     }
-    int pwm = (int) (MAX_DUTY_CYC * duty_cycle)
+    int pwm = (int) (MAX_DUTY_CYC * duty_cycle);
     if(motor->direction == forward) {
         gpioPWM(motor->pin_fw, pwm);
     } else if(motor->direction == backward) {
         gpioPWM(motor->pin_bw, pwm);
     } else {
-        return -1; // No direction given
+        return motor->direction; // No direction given
     }
+    return 0;
 }
 
-void cbMotorReset(const cbMotor_t* motor) {
-    cbMotorSetPWM(motor, forward, .0f);
+void cbMotorReset(cbMotor_t* motor) {
+    cbMotorMove(motor, forward, .0f);
 }

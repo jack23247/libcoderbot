@@ -28,17 +28,17 @@
 
 #include <stdbool.h>
 
-typedef enum { backward = -1, forward = 1 } cbDir_t;
+typedef enum cbDir { backward = -1, forward = 1 } cbDir_t;
 
 struct cbMotor {
-    CODERBOT_GPIO pin_fw, pin_bw;
+    cbGPIO_t pin_fw, pin_bw;
     cbDir_t direction;
 };
 
 typedef struct cbMotor cbMotor_t;
 
 void cbMotorGPIOinit(const cbMotor_t* motor);
-int cbMotorMove(const cbMotor_t* motor, cbDir_t direction, float duty_cycle);
-void cbMotorReset(const cbMotor_t* motor);
+int cbMotorMove(cbMotor_t* motor, cbDir_t direction, float duty_cycle);
+void cbMotorReset(cbMotor_t* motor);
 
 #endif // MOTOR_H
