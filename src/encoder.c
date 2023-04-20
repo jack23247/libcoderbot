@@ -30,12 +30,12 @@
  * @param pin_a The PIN connected to Channel A.
  * @param pin_a The PIN connected to Channel B.
  */
-void cbEncoderGPIOinit(int pin_a, int pin_b) {
+void cbEncoderGPIOinit(const cbEncoder_t* enc) {
     // Channel A
-    gpioSetMode(pin_a, PI_INPUT);
+    gpioSetMode(enc->pin_a, PI_INPUT);
     gpioSetPullUpDown(pin_a, PI_PUD_UP);
     // Channel B
-    gpioSetMode(pin_b, PI_INPUT);
+    gpioSetMode(enc->pin_b, PI_INPUT);
     gpioSetPullUpDown(pin_b, PI_PUD_UP);
 }
 
@@ -48,11 +48,11 @@ void cbEncoderGPIOinit(int pin_a, int pin_b) {
  * @param timeout A time in milliseconds after which the ISR is terminated.
  * @link  https://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc
  */
-void cbEncoderRegisterISRs(const cbEncoder_t* enc, int pin_a, int pin_b, int timeout) {
+void cbEncoderRegisterISRs(const cbEncoder_t* enc, int timeout) {
     // Channel A
-    gpioSetISRFuncEx(pin_a, EITHER_EDGE, timeout, cbEncoderISRa, (void*)enc);
+    gpioSetISRFuncEx(enc->pin_a, EITHER_EDGE, timeout, cbEncoderISRa, (void*)enc);
     // Channel B
-    gpioSetISRFuncEx(pin_b, EITHER_EDGE, timeout, cbEncoderISRb, (void*)enc);
+    gpioSetISRFuncEx(enc->pin_b, EITHER_EDGE, timeout, cbEncoderISRb, (void*)enc);
 }
 
 /**
@@ -60,11 +60,11 @@ void cbEncoderRegisterISRs(const cbEncoder_t* enc, int pin_a, int pin_b, int tim
  * @param pin_a The PIN connected to Channel A.
  * @param pin_a The PIN connected to Channel B.
  */
-void cbEncoderCancelISRs(int pin_a, int pin_b) {
+void cbEncoderCancelISRs(const cbEncoder_t* enc) {
     // Channel A
-    gpioSetISRFunc(pin_a, EITHER_EDGE, 0, NULL);
+    gpioSetISRFunc(enc->pin_a, EITHER_EDGE, 0, NULL);
     // Channel B
-    gpioSetISRFunc(pin_b, EITHER_EDGE, 0, NULL);
+    gpioSetISRFunc(enc->pin_b, EITHER_EDGE, 0, NULL);
 }
 
 /**
