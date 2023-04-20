@@ -33,10 +33,10 @@
 void cbEncoderGPIOinit(const cbEncoder_t* enc) {
     // Channel A
     gpioSetMode(enc->pin_a, PI_INPUT);
-    gpioSetPullUpDown(pin_a, PI_PUD_UP);
+    gpioSetPullUpDown(enc->pin_a, PI_PUD_UP);
     // Channel B
     gpioSetMode(enc->pin_b, PI_INPUT);
-    gpioSetPullUpDown(pin_b, PI_PUD_UP);
+    gpioSetPullUpDown(enc->pin_b, PI_PUD_UP);
 }
 
 /**
@@ -85,9 +85,9 @@ void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata) {
     if(level ^ enc->level_b) { // Either one of A or B is 1 
         enc->direction = forward;    
     } else {
-        bad_ticks++; // Self-diagnostics
+        enc->bad_ticks++; // Self-diagnostics
     }
-    ticks += direction;
+    enc->ticks += enc->direction;
 }
 
 /**
@@ -107,8 +107,8 @@ void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata) {
     enc->level_b = level;
     if(level ^ enc->level_a) { // Either one of A or B is 1 
         enc->direction = backward;    
-    } else { // Direction unchanged
-        bad_ticks++; // Self-diagnostics
+    } else {
+        enc->bad_ticks++; // Self-diagnostics
     }
-    ticks += direction;
+    enc->ticks += enc->direction;
 }
