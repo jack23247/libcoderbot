@@ -28,10 +28,15 @@
 
 #include "gpio.h"
 
+typedef enum { backward = -1, forward = 1 } dir_t;
+
 struct cbEncoder {
+    CODERBOT_GPIO pin_a, pin_b;
     int last_gpio;
-    uint16_t a, b;
-    int direction;
+    uint16_t level_a, level_b;
+    dir_t direction;
+    int64_t ticks;
+    uint32_t bad_ticks;
 };
 
 typedef struct cbEncoder cbEncoder_t;
