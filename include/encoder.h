@@ -32,7 +32,7 @@ typedef enum { backward = -1, forward = 1 } cbDir_t;
 
 struct cbEncoder {
     cbGPIO_t pin_a, pin_b;
-    int last_gpio;
+    cbGPIO_t last_gpio;
     uint16_t level_a, level_b;
     cbDir_t direction;
     int64_t ticks;
