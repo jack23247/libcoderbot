@@ -1,7 +1,7 @@
 #include <pigpio.h>
 #include <stdlib.h>
 
-#include "../include/gpio.h"
+#include "../include/cbdef.h"
 #include "../include/encoder.h"
 
 #include "h_time.h"
@@ -25,6 +25,30 @@ void terminate() {
     gpioTerminate();
 }
 
+void sleep(timespec_t* ts, int ms) {
+    HTime_GetNs(ts);
+    while(HTime_GetNsDelta(ts) < (ms * NSEC_PER_MSEC)) {
+        HTime_GetNs(ts);
+    }
+    HTime_InitBase();
+}
+
+void printEncoderData(const cbEncoder_t* l, const cbEncoder_t* r) {
+    printf("          L         R\nD %10d%10d\nT %10d%10d\nE %10d%10d\n\n",
+        l->direction, r->direction,
+        l->ticks, r->ticks,
+        l->bad_ticks, r->bad_ticks
+    );
+}
+
+/*
+    L       R
+D   1       
+T
+E
+
+*/
+
 int main(void) {
     init();
     atexit(terminate);
@@ -32,13 +56,9 @@ int main(void) {
     printf("Every %dms:\n", delta_ms);
     timespec_t tick;
     HTime_InitBase();
-    HTime_GetNs(&tick);
-    for(int i = 0; i < 100; i++) {
-        while(HTime_GetNsDelta(&tick) < (500 * NSEC_PER_MSEC)) {
-            HTime_GetNs(&tick);
-        }
-        printf("L:%d, R:%d\n", cbEncoderLeft.direction, cbEncoderRight.direction);
-        HTime_InitBase();
+    for(int i = 0; i < 20; i++) {
+        printEncoderData(&cbEncoderLeft, &cbEncoderRight);
+        sleep(&tick, delta_ms);
     }
     exit(EXIT_SUCCESS);
 }
