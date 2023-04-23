@@ -25,34 +25,69 @@
 
 #include "motor.h"
 
-static const int MAX_DUTY_CYC = 255; //<< Paperino
+/**
+ * The frequency of the soft-PWM thread. 
+ * @link https://abyz.me.uk/rpi/pigpio/cif.html#gpioSetPWMfrequency
+ */
+#define PWM_FREQ 100 
 
+/**
+ * The scaled range of the PWM's Duty Cycle.
+ * @link https://abyz.me.uk/rpi/pigpio/cif.html#gpioSetPWMrange
+ */
+#define MAX_DUTY_CYC 255
+
+/**
+ * @brief Initializes the GPIO pins used for driving a motor.
+ * @param motor A pointer to the handle of the motor.
+ */
 void cbMotorGPIOinit(const cbMotor_t* motor) {
+    // Fw
+    gpioSetMode(motor->pin_fw, PI_OUTPUT);
     gpioSetPWMrange(motor->pin_fw, MAX_DUTY_CYC);
-    gpioSetPWMfrequency(motor->pin_fw, 100);
+    gpioSetPWMfrequency(motor->pin_fw, PWM_FREQ);
+    // Bw
+    gpioSetMode(motor->pin_bw, PI_OUTPUT);
     gpioSetPWMrange(motor->pin_bw, MAX_DUTY_CYC);
-    gpioSetPWMfrequency(motor->pin_bw, 100);
+    gpioSetPWMfrequency(motor->pin_bw, PWM_FREQ);
 }
 
+/**
+ * @brief Moves a motor.
+ * @param motor A pointer to the handle of the motor.
+ * @param direction The direction in which to move the motor. If zero the 
+ *                  direction of the motion is unchanged.
+ * @param duty_cycle The duty cycle expressed in percentage in the range (0,1].
+ * @return A condition code.
+ */
 int cbMotorMove(cbMotor_t* motor, cbDir_t direction, float duty_cycle) {
-    if(duty_cycle < .0f || duty_cycle > 1.0f)
-        return 66; // Scaling out of range
-    if(direction == 0) {
-        direction = motor->direction; // Use same direction as before
-    } else {
-        motor->direction = direction;
-    }
+    // Check for the range of the Duty Cycle
+    if(duty_cycle <= .0f || duty_cycle > 1.0f) return CB_ERANGE;
     int pwm = (int) (MAX_DUTY_CYC * duty_cycle);
-    if(motor->direction == forward) {
-        gpioPWM(motor->pin_fw, pwm);
-    } else if(motor->direction == backward) {
-        gpioPWM(motor->pin_bw, pwm);
-    } else {
-        return motor->direction; // No direction given
+    if(direction) motor->direction = direction;
+    switch(motor->direction) {
+        /* In order to move the motor you need to set one pin to 0 (Ground) and
+         * apply a certain PWM signal to the other pin. 
+         */
+        case forward:
+            gpioPWM(motor->pin_fw, pwm);
+            gpioWrite(motor->pin_bw, 0);
+            break;
+        case backward:
+            gpioWrite(motor->pin_fw, 0);
+            gpioPWM(motor->pin_bw, pwm);
+            break;
+        default:
+            /* - The specified direction is wrong;
+             * - You chose not to change the direction but the previous 
+             *   direction was not specified yet.
+             */
+            return CB_ENOMODE;
     }
-    return 0;
+    return CB_SUCCESS;
 }
 
 void cbMotorReset(cbMotor_t* motor) {
-    cbMotorMove(motor, forward, .0f);
+    gpioWrite(motor->pin_fw, 0);
+    gpioWrite(motor->pin_bw, 0);
 }
