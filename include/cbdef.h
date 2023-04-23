@@ -70,6 +70,10 @@ typedef enum {
     PIN_LEFT_BACKWARD = 18, // L293DD Pin 9, Ch.2
     PIN_RIGHT_FORWARD = 23, // L293DD Pin 12, Ch.3
     PIN_RIGHT_BACKWARD = 22, // L293DD Pin 19, Ch.4
+    
+    // XXX Understand why I had to invert the right motor pins to make it go in
+    //     the correct direction. Is my L293DD pinout bogus??
+
 
 /* Unused
     PIN_PUSHBUTTON = 16, // 11
