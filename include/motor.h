@@ -24,11 +24,9 @@
 #ifndef MOTOR_H
 #define MOTOR_H
 
-#include "gpio.h"
+#include "cbdef.h"
 
 #include <stdbool.h>
-
-typedef enum cbDir { backward = -1, forward = 1 } cbDir_t;
 
 struct cbMotor {
     cbGPIO_t pin_fw, pin_bw;

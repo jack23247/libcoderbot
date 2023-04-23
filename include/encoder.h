@@ -26,9 +26,7 @@
 
 #include <stdint.h>
 
-#include "gpio.h"
-
-typedef enum { backward = -1, forward = 1 } cbDir_t;
+#include "cbdef.h"
 
 struct cbEncoder {
     cbGPIO_t pin_a, pin_b;
