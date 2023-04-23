@@ -83,11 +83,11 @@ void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata) {
     enc->last_gpio = gpio; 
     enc->level_a = level;
     if(level ^ enc->level_b) { // Either one of A or B is 1 
-        enc->direction = forward;    
+        enc->direction = forward;
+        enc->ticks += enc->direction;  
     } else {
         enc->bad_ticks++; // Self-diagnostics
     }
-    enc->ticks += enc->direction;
 }
 
 /**
@@ -106,9 +106,9 @@ void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata) {
     enc->last_gpio = gpio; 
     enc->level_b = level;
     if(level ^ enc->level_a) { // Either one of A or B is 1 
-        enc->direction = backward;    
+        enc->direction = backward; 
+        enc->ticks += enc->direction;  
     } else {
         enc->bad_ticks++; // Self-diagnostics
     }
-    enc->ticks += enc->direction;
 }
