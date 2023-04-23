@@ -1,7 +1,7 @@
 #include <pigpio.h>
 #include <stdlib.h>
 
-#include "../include/gpio.h"
+#include "../include/cbdef.h"
 #include "../include/motor.h"
 
 #include "h_time.h"
@@ -15,33 +15,44 @@ void init() {
     cbMotorGPIOinit(&cbMotorRight);
 }
 
+void resetAll() {
+    cbMotorReset(&cbMotorLeft);
+    cbMotorReset(&cbMotorRight);
+}
+
 void terminate() {
+    resetAll();
     gpioTerminate();
+}
+
+void sleep(timespec_t* ts, int ms) {
+    HTime_GetNs(ts);
+    while(HTime_GetNsDelta(ts) < (ms * NSEC_PER_MSEC)) {
+        HTime_GetNs(ts);
+    }
+    HTime_InitBase();
 }
 
 typedef struct {
     cbDir_t left, right;
-} pattern_t
+} pattern_t;
 
 pattern_t patterns[4] = {{forward, forward}, {forward, backward}, {backward, backward}, {backward, forward}};
 
 int main(void) {
     init();
     atexit(terminate);
-    int delta_ms = 500;
+    int delta_ms = 5000;
     printf("Every %dms:\n", delta_ms);
     timespec_t tick;
     HTime_InitBase();
-    HTime_GetNs(&tick);
     int pat_idx = 0;
-    for(int i = 0; i < 100; i++) {
-        while(HTime_GetNsDelta(&tick) < (500 * NSEC_PER_MSEC)) {
-            HTime_GetNs(&tick);
-        }
-        cbMotorMove(&cbMotorLeft, patterns[pat_idx]->left, 100-i);
-        cbMotorMove(&cbMotorRight, patterns[pat_idx]->right, 100-i);
-        ++pat_idx % 4;
-        HTime_InitBase();
+    for(int i = 0; i < 4; i++) {
+        printf("%d:%d:%d\n", pat_idx, 
+                             cbMotorMove(&cbMotorLeft, patterns[pat_idx].left, 0.5), 
+                             cbMotorMove(&cbMotorRight, patterns[pat_idx].right, 0.5));
+        pat_idx = (++pat_idx) % 4;
+        sleep(&tick, delta_ms);
     }
     exit(EXIT_SUCCESS);
 }
