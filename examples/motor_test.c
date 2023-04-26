@@ -15,13 +15,9 @@ void init() {
     cbMotorGPIOinit(&cbMotorRight);
 }
 
-void resetAll() {
+void terminate() {
     cbMotorReset(&cbMotorLeft);
     cbMotorReset(&cbMotorRight);
-}
-
-void terminate() {
-    resetAll();
     gpioTerminate();
 }
 
