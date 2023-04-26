@@ -25,6 +25,9 @@
 
 #include "encoder.h"
 
+void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata);
+void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata);
+
 /**
  * @brief Initializes PiGPIO to service the Pulses from an Encoder.
  * @param pin_a The PIN connected to Channel A.

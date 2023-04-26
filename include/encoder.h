@@ -43,7 +43,4 @@ void cbEncoderGPIOinit(const cbEncoder_t* enc);
 void cbEncoderRegisterISRs(const cbEncoder_t* enc, int timeout);
 void cbEncoderCancelISRs(const cbEncoder_t* enc);
 
-void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata);
-void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata);
-
 #endif // ENCODER_H
