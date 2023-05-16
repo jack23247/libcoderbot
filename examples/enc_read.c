@@ -4,7 +4,7 @@
 #include "../include/cbdef.h"
 #include "../include/encoder.h"
 
-#include "h_time.h"
+#include "timespec.h"
 
 cbEncoder_t cbEncoderLeft = {PIN_ENCODER_LEFT_A, PIN_ENCODER_LEFT_B, GPIO_PIN_NC, 0, 0, 0};
 cbEncoder_t cbEncoderRight = {PIN_ENCODER_RIGHT_A, PIN_ENCODER_RIGHT_B, GPIO_PIN_NC, 0, 0, 0};
@@ -25,12 +25,13 @@ void terminate() {
     gpioTerminate();
 }
 
-void sleep(timespec_t* ts, int ms) {
-    HTime_GetNs(ts);
-    while(HTime_GetNsDelta(ts) < (ms * NSEC_PER_MSEC)) {
-        HTime_GetNs(ts);
+void sleep(int ms) {
+    timespec_t clock;
+    nsec_t delta = 0;
+    tsSet(clock);
+    while(delta < (ms * NSEC_PER_MSEC)) {
+        delta += tsTickNs(clock);
     }
-    HTime_InitBase();
 }
 
 void printEncoderData(const cbEncoder_t* l, const cbEncoder_t* r) {
@@ -54,11 +55,9 @@ int main(void) {
     atexit(terminate);
     int delta_ms = 500;
     printf("Every %dms:\n", delta_ms);
-    timespec_t tick;
-    HTime_InitBase();
     for(int i = 0; i < 20; i++) {
         printEncoderData(&cbEncoderLeft, &cbEncoderRight);
-        sleep(&tick, delta_ms);
+        sleep(delta_ms);
     }
     exit(EXIT_SUCCESS);
 }
