@@ -74,10 +74,6 @@ void printEncoderData(const cbEncoder_t* l, const cbEncoder_t* r) {
            r->bad_ticks);
 }
 
-float dist_mm(const cbEncoder_t* enc) {
-    return enc->ticks * ENCODER_DIST_PER_TICK_MM;
-}
-
 void control() {
     int distFromGoal_mm = 115;
     int prevLeftTicks = 0;
@@ -96,7 +92,7 @@ void control() {
     cbMotorMove(&cbMotorLeft, forward, leftDutyCyc);
     cbMotorMove(&cbMotorRight, forward, rightDutyCyc);
 
-    while (distance_from_goal > 0) {
+    while (distFromGoal_mm > 0) {
         sleep(PI_INTERVAL_MSEC);
         int leftTicks = cbEncoderLeft.ticks;
         int rightTicks = cbEncoderRight.ticks;
@@ -104,21 +100,22 @@ void control() {
         {
             int distLeft_mm = ENC_DIST_PER_TICK_MM * (leftTicks - prevLeftTicks);
             prevLeftTicks = leftTicks;
-            float speedLeft_mm_s = distLeft_mm / (PI_INTERVAL * MSEC_PER_SEC);
-            leftErr = (targetSpeedLeft_mm_s - speedLeft_mm_s) / targetSpeedLeft_mm_s * 100.0;
+            float speedLeft_mm_s = distLeft_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
+            leftError = (targetSpeedLeft_mm_s - speedLeft_mm_s) / targetSpeedLeft_mm_s * 100.0;
             float leftCorr = (leftErr * KP) + (leftIntegralError * KI);
             leftIntegralError += leftError;
         }
         {
             int distRight_mm = ENC_DIST_PER_TICK_MM * (rightTicks - prevRightTicks);
             prevRightTicks = rightTicks;
-            float speedRight_mm_s = distRight_mm / (PI_INTERVAL * MSEC_PER_SEC);
-            leftErr = (targetSpeedRight_mm_s - speedRight_mm_s) / targetSpeedRight_mm_s * 100.0;
+            float speedRight_mm_s = distRight_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
+            leftError = (targetSpeedRight_mm_s - speedRight_mm_s) / targetSpeedRight_mm_s * 100.0;
             float rightCorr = (rightErr * KP) + (rightIntegralError * KI);
             rightIntegralError += rightError;
         }
-        cbMotorMove(&cbMotorLeft, forward, dutycyc_l + leftCorr - rightCorr);
-        cbMotorMove(&cbMotorLeft, forward, dutycyc_r + rightCorr - leftCorr);
+        distFromGoal_mm -= (distLeft_mm + distRight_mm) / 2;
+        cbMotorMove(&cbMotorLeft, forward, leftDutyCyc + leftCorr - rightCorr);
+        cbMotorMove(&cbMotorLeft, forward, rightDutyCyc + rightCorr - leftCorr);
     }
 }
 
