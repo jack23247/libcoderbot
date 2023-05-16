@@ -11,6 +11,15 @@ More informations about the CoderBot platform are available on the [project's we
 | CoderBot V4 Support | Yes        | No            |
 | CoderBot V5 Support | Yes        | Yes           |
 
+### CoderBot V5 Shield Feature Support Matrix
+
+| Feature               | Support |
+| :-------------------- | ------- |
+| Motor Driver (L293DD) | Yes     |
+| Encoders              | Yes     |
+| Sonars                | No      |
+| MPU (ATMega328)       | Planned |
+
 ## Prerequisites
 
 `libcoderbot` requires the following packages to be installed:
@@ -31,5 +40,3 @@ apt install pigpio git build-essential doxygen
 GNU GPLv3 License. A copy of the license is provided in `COPYING`.
 
 The original Python API is Copyright © 2014-2019 Roberto Previtera, Antonio Vivace, CoderBot contributors and is released under the GNU GPLv2 License. See `CODERBOT_LICENSE` for more informations.
-
-`h_time.h` is Copyright © 2019, Jacopo Maltagliati and is released under the European Union Public License (EUPL) v1.2
