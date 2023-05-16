@@ -28,9 +28,9 @@ void terminate() {
 void sleep(int ms) {
     timespec_t clock;
     nsec_t delta = 0;
-    tsSet(clock);
+    tsSet(&clock);
     while(delta < (ms * NSEC_PER_MSEC)) {
-        delta += tsTickNs(clock);
+        delta += tsTickNs(&clock);
     }
 }
 
