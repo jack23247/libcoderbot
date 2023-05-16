@@ -97,20 +97,20 @@ void control() {
         int leftTicks = cbEncoderLeft.ticks;
         int rightTicks = cbEncoderRight.ticks;
         float leftCorr, rightCorr;
+        int distLeft_mm = ENC_DIST_PER_TICK_MM * (leftTicks - prevLeftTicks);
         {
-            int distLeft_mm = ENC_DIST_PER_TICK_MM * (leftTicks - prevLeftTicks);
             prevLeftTicks = leftTicks;
             float speedLeft_mm_s = distLeft_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
             leftError = (targetSpeedLeft_mm_s - speedLeft_mm_s) / targetSpeedLeft_mm_s * 100.0;
-            float leftCorr = (leftErr * KP) + (leftIntegralError * KI);
+            leftCorr = (leftErr * KP) + (leftIntegralError * KI);
             leftIntegralError += leftError;
         }
+        int distRight_mm = ENC_DIST_PER_TICK_MM * (rightTicks - prevRightTicks);
         {
-            int distRight_mm = ENC_DIST_PER_TICK_MM * (rightTicks - prevRightTicks);
             prevRightTicks = rightTicks;
             float speedRight_mm_s = distRight_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
             leftError = (targetSpeedRight_mm_s - speedRight_mm_s) / targetSpeedRight_mm_s * 100.0;
-            float rightCorr = (rightErr * KP) + (rightIntegralError * KI);
+            rightCorr = (rightErr * KP) + (rightIntegralError * KI);
             rightIntegralError += rightError;
         }
         distFromGoal_mm -= (distLeft_mm + distRight_mm) / 2;
