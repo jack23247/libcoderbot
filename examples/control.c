@@ -30,6 +30,9 @@
 #include <pigpio.h>
 #include <stdlib.h>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "../include/cbdef.h"
 #include "../include/motor.h"
 #include "../include/encoder.h"
@@ -57,10 +60,10 @@
 #define KI 0.03  // integral coefficient
 #endif
 
-#define PI_INTERVAL_MSEC 20.0f // 50Hz
-#define ENC_DIST_PER_TICK_MM 0.06
-#define LEFT_WHEEL_RAY 60.f
-#define RIGHT_WHEEL_RAY 61.f
+#define PI_INTERVAL_MSEC 20 // 50Hz
+#define ENC_DIST_PER_TICK_MM 0.14 //0.06
+#define LEFT_WHEEL_RAY 32.f
+#define RIGHT_WHEEL_RAY 32.f
 
 /* TYPEDEFS ---------------------------------------------------------------- */
 
@@ -128,7 +131,7 @@ void printEncoderData(const cbEncoder_t* l, const cbEncoder_t* r) {
 
 void update(ctrlParams_t* p) {
     //p->ticks = cbEncoderLeft.ticks;
-    p->travel_mm = (p->ticks - p->prevTicks) * p->ticksPerMm;
+    p->travel_mm = (p->ticks - p->prevTicks) * p->mmsPerTick;
     p->prevTicks = p->ticks;
     p->speed_mm_s = p->travel_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
     p->error_mm_s = (p->targetSpeed_mm_s - p->speed_mm_s); // / targetSpeed[L]_mm_s * 100.0;
@@ -157,7 +160,7 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L, float targetSpeed_
         .error_mm_s = 0,
         .integralError_mm_s = 0,
         .correction = 0,
-        .mmsPerTick = RIGHT_WHEEL_RAY * (360/16) // TODO da rivedere
+        .mmsPerTick = (LEFT_WHEEL_RAY * 2 * M_PI) / 32 // TODO da rivedere
     };
 
     ctrlParams_t right = {
@@ -170,26 +173,26 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L, float targetSpeed_
         .error_mm_s = 0,
         .integralError_mm_s = 0,
         .correction = 0,
-        .mmsPerTick = RIGHT_WHEEL_RAY * (360/16) // TODO da rivedere
+        .mmsPerTick = (RIGHT_WHEEL_RAY * 2 * M_PI) / 32 // RIGHT_WHEEL_RAY * (360/16) // TODO da rivedere
     };
 
     cbMotorMove(&cbMotorLeft, forward, left.dutyCyc);
     cbMotorMove(&cbMotorRight, forward, right.dutyCyc);
 
-    while (distFromGoal_mm > 0) {
+    while (distFromGoal_mm > 0.f) {
         /* XXX
          * Copying the ticks should be done as quickly as possible to avoid an 
-         * ISR interrupt from happeining in between the copies. Consider 
+         * ISR interrupt from happening in between the copies. Consider 
          * disabling the encoder callback temporarily if problems arise. 
          */
         left.ticks = cbEncoderLeft.ticks;
         right.ticks = cbEncoderRight.ticks;
         update(&left);
         update(&right);
-        if(left.speed > 1.f && right.speed > 1.f) {
+        //if(left.speed_mm_s > 1.f && right.speed_mm_s > 1.f) {
             cbMotorMove(&cbMotorLeft, forward, left.dutyCyc + left.correction - right.correction);
-            cbMotorMove(&cbMotorLeft, forward, right.DutyCyc + right.correction - left.correction);
-        }
+            cbMotorMove(&cbMotorLeft, forward, right.dutyCyc + right.correction - left.correction);
+        //}
         distFromGoal_mm -= (left.travel_mm + right.travel_mm) / 2;
         sleep(PI_INTERVAL_MSEC);
     }
@@ -198,6 +201,6 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L, float targetSpeed_
 int main(void) {
     init();
     atexit(terminate);
-    control(115.f, 10.0f, 10.0f, 1.0, 1.0);
+    control(500.f, 10.0f, 10.0f, 1.0, 1.0);
     exit(EXIT_SUCCESS);
 }
