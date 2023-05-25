@@ -4,27 +4,21 @@
  * @date 19 Mag 2023
  * @brief Trivial P-D controller for the CoderBot platform.
  * @copyright Copyright (c) 2022-23, Jacopo Maltagliati.
- * 
+ *
  * This file is part of libcoderbot.
- * 
- * libcoderbot is free software: you can redistribute it and/or modify it under 
+ *
+ * libcoderbot is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software
  * Foundation, either version 3 of the License, or (at your option) any later
  * version.
- * 
- * libcoderbot is distributed in the hope that it will be useful, but WITHOUT 
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or 
- * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for 
+ *
+ * libcoderbot is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
  * more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along with
  * libcoderbot. If not, see <https://www.gnu.org/licenses/>.
- */
-
-/* TODOs:
- * - Separare raggi da altri componenti costante
- * - Costanti separate LEFT e RIGHT
- * - ~~Togliere denominatore calcolo errore~~ Fatto
  */
 
 #include <pigpio.h>
@@ -61,9 +55,12 @@
 #endif
 
 #define PI_INTERVAL_MSEC 20 // 50Hz
-#define ENC_DIST_PER_TICK_MM 0.14 //0.06
-#define LEFT_WHEEL_RAY 32.f
-#define RIGHT_WHEEL_RAY 32.f
+
+//#define ENC_DIST_PER_TICK_MM 0.14 //0.06
+#define LEFT_WHEEL_RAY_MM 32.f
+#define RIGHT_WHEEL_RAY_MM 32.f
+#define TICKS_PER_REVOLUTION 32
+#define TRANSMISSION_RATIO 120
 
 /* TYPEDEFS ---------------------------------------------------------------- */
 
@@ -72,15 +69,16 @@
  */
 typedef struct {
     int ticks, //< The ticks read from the encoder.
-        prevTicks; //< The ticks read the previous time the structure was updated.
-    float dutyCyc, //< The duty cycle of the motor in percentage. // MAYBE const?
+        prevTicks; //< The ticks read the last time the structure was updated.
+    float dutyCyc, //< The duty cycle of the motor in percentage.
           travel_mm, //< The distance the wheel has traveled in mm.
           speed_mm_s, //< The speed of the wheel in mm.
           targetSpeed_mm_s, //< The desired speed in mm/s.
           error_mm_s, //< The error in speed in mm/s.
           integralError_mm_s, //< The sum of the errors in mm/s.
           correction; //< The correction factor in duty cycle percentage.
-    const float mmsPerTick; //< The distance traveled by the wheel per each tick in mm.
+    const float mmsPerTick; //< The distance traveled by the wheel per each
+                            //  tick in mm.
 } ctrlParams_t;
 
 /* GLOBALS ----------------------------------------------------------------- */
@@ -129,8 +127,25 @@ void printEncoderData(const cbEncoder_t* l, const cbEncoder_t* r) {
            r->bad_ticks);
 }
 
-void update(ctrlParams_t* p) {
-    //p->ticks = cbEncoderLeft.ticks;
+/**
+ * @brief Updates the parameters for both encoders.
+ */
+inline void updateAll(ctrlParams_t* left, ctrlParams_t* right) {
+    /* XXX
+     * Copying the ticks should be done as quickly as possible to avoid an
+     * ISR interrupt from happening in between the copies. Consider
+     * disabling the encoder callback temporarily if problems arise.
+     */
+    left.ticks = cbEncoderLeft.ticks;
+    right.ticks = cbEncoderRight.ticks;
+    update(left);
+    update(right);
+}
+
+/**
+ * @brief Updates the parameters for one of the encoders.
+ */
+inline void update(ctrlParams_t* p) {
     p->travel_mm = (p->ticks - p->prevTicks) * p->mmsPerTick;
     p->prevTicks = p->ticks;
     p->speed_mm_s = p->travel_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
@@ -141,58 +156,55 @@ void update(ctrlParams_t* p) {
 
 /**
  * @brief Trivial Proportional-Integral controller for the CoderBot Platform.
- * 
+ *
  * @param distFromGoal_mm The distance from the goal in millimiters.
  * @param targetSpeed_mm_s_L The target speed of the left wheel in mm/s.
  * @param targetSpeed_mm_s_R The target speed of the right wheel in mm/s.
  * @param dutyCycL The initial duty cycle of the left motor.
  * @param dutyCycR The initial duty cycle of the right motor.
  */
-void control(float distFromGoal_mm, float targetSpeed_mm_s_L, float targetSpeed_mm_s_R, float dutyCycL, float dutyCycR) {
+void control(float distFromGoal_mm, float targetSpeed_mm_s_L,
+             float targetSpeed_mm_s_R, float dutyCyc_L, float dutyCyc_R) {
 
     ctrlParams_t left = {
-        .ticks = 0, 
-        .prevTicks = 0, 
-        .dutyCyc = dutyCycL, 
-        .travel_mm = 0.f, 
+        .ticks = 0,
+        .prevTicks = 0,
+        .dutyCyc = dutyCyc_L,
+        .travel_mm = 0.f,
         .speed_mm_s = 0.f,
         .targetSpeed_mm_s = targetSpeed_mm_s_L,
         .error_mm_s = 0,
         .integralError_mm_s = 0,
         .correction = 0,
-        .mmsPerTick = (LEFT_WHEEL_RAY * 2 * M_PI) / 32 // TODO da rivedere
+        .mmsPerTick = (LEFT_WHEEL_RAY_MM * 2 * M_PI) /
+                      (TICKS_PER_REVOLUTION * TRANSMISSION_RATIO)
     };
 
     ctrlParams_t right = {
-        .ticks = 0, 
-        .prevTicks = 0, 
-        .dutyCyc = dutyCycR, 
-        .travel_mm = 0.f, 
+        .ticks = 0,
+        .prevTicks = 0,
+        .dutyCyc = dutyCyc_R,
+        .travel_mm = 0.f,
         .speed_mm_s = 0.f,
         .targetSpeed_mm_s = targetSpeed_mm_s_R,
         .error_mm_s = 0,
         .integralError_mm_s = 0,
         .correction = 0,
-        .mmsPerTick = (RIGHT_WHEEL_RAY * 2 * M_PI) / 32 // RIGHT_WHEEL_RAY * (360/16) // TODO da rivedere
+        .mmsPerTick = (RIGHT_WHEEL_RAY_MM * 2 * M_PI) /
+                      (TICKS_PER_REVOLUTION * TRANSMISSION_RATIO)
     };
 
     cbMotorMove(&cbMotorLeft, forward, left.dutyCyc);
     cbMotorMove(&cbMotorRight, forward, right.dutyCyc);
 
     while (distFromGoal_mm > 0.f) {
-        /* XXX
-         * Copying the ticks should be done as quickly as possible to avoid an 
-         * ISR interrupt from happening in between the copies. Consider 
-         * disabling the encoder callback temporarily if problems arise. 
-         */
-        left.ticks = cbEncoderLeft.ticks;
-        right.ticks = cbEncoderRight.ticks;
-        update(&left);
-        update(&right);
-        //if(left.speed_mm_s > 1.f && right.speed_mm_s > 1.f) {
-            cbMotorMove(&cbMotorLeft, forward, left.dutyCyc + left.correction - right.correction);
-            cbMotorMove(&cbMotorLeft, forward, right.dutyCyc + right.correction - left.correction);
-        //}
+        updateAll(&left, &right);
+        if(left.speed_mm_s > 1.f)
+            cbMotorMove(&cbMotorLeft, forward,
+                        left.dutyCyc + left.correction - right.correction);
+        if(right.speed_mm_s > 1.f)
+            cbMotorMove(&cbMotorLeft, forward,
+                        right.dutyCyc + right.correction - left.correction);
         distFromGoal_mm -= (left.travel_mm + right.travel_mm) / 2;
         sleep(PI_INTERVAL_MSEC);
     }
