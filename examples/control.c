@@ -2,7 +2,7 @@
  * @file control.c
  * @author Jacopo Maltagliati
  * @date 19 Mag 2023
- * @brief Trivial P-D controller for the CoderBot platform.
+ * @brief Trivial P-I controller for the CoderBot platform.
  * @copyright Copyright (c) 2022-23, Jacopo Maltagliati.
  *
  * This file is part of libcoderbot.
@@ -34,33 +34,19 @@
 
 /* PID PARAMETERS ---------------------------------------------------------- */
 
-#define PID_RESPONSE_MEDIUM
-
-#ifdef PID_RESPONSE_SOFT
-#define KP 0.04   // proportional coefficient
-#define KD 0.02   // derivative coefficient
-#define KI 0.005  // integral coefficient
-#endif
-
-#ifdef PID_RESPONSE_MEDIUM
-#define KP 0.4   // proportional coefficient
-#define KD 0.1   // derivative coefficient
-#define KI 0.02  // integral coefficient
-#endif
-
-#ifdef PID_RESPONSE_STRONG
-#define KP 0.9   // proportional coefficient
-#define KD 0.05  // derivative coefficient
-#define KI 0.03  // integral coefficient
-#endif
+#define KP 0.005
+#define KI 0.0005
 
 #define PI_INTERVAL_MSEC 20 // 50Hz
 
-//#define ENC_DIST_PER_TICK_MM 0.14 //0.06
-#define LEFT_WHEEL_RAY_MM 32.f
-#define RIGHT_WHEEL_RAY_MM 32.f
-#define TICKS_PER_REVOLUTION 32
+#define LEFT_WHEEL_RAY_MM 33.f
+#define RIGHT_WHEEL_RAY_MM 33.f
+// TODO Oscilloscopio alla mano, come funziona sta roba?
+#define TICKS_PER_REVOLUTION 16 //< Ticks per motor revolution
 #define TRANSMISSION_RATIO 120
+
+#define PWM_CLAMPING_EVENTS_MAX 10 //< Clamping events after which the
+                                   //  controller should yield.
 
 /* TYPEDEFS ---------------------------------------------------------------- */
 
@@ -76,7 +62,7 @@ typedef struct {
           targetSpeed_mm_s, //< The desired speed in mm/s.
           error_mm_s, //< The error in speed in mm/s.
           integralError_mm_s, //< The sum of the errors in mm/s.
-          correction; //< The correction factor in duty cycle percentage.
+          controlAction; //< The correction factor in duty cycle percentage.
     const float mmsPerTick; //< The distance traveled by the wheel per each
                             //  tick in mm.
 } ctrlParams_t;
@@ -121,37 +107,47 @@ void sleep(int ms) {
     }
 }
 
-void printEncoderData(const cbEncoder_t* l, const cbEncoder_t* r) {
-    printf("          L         R\nD %10d%10d\nT %10d%10d\nE %10d%10d\n\n",
-           l->direction, r->direction, l->ticks, r->ticks, l->bad_ticks,
-           r->bad_ticks);
-}
-
 /**
- * @brief Updates the parameters for both encoders.
+ * @brief Updates the Controller parameters for one of the sides.
+ *
+ * @param p The structure containing the parameters of the Controller at the
+ *          current iteration.
  */
-inline void updateAll(ctrlParams_t* left, ctrlParams_t* right) {
-    /* XXX
-     * Copying the ticks should be done as quickly as possible to avoid an
-     * ISR interrupt from happening in between the copies. Consider
-     * disabling the encoder callback temporarily if problems arise.
-     */
-    left.ticks = cbEncoderLeft.ticks;
-    right.ticks = cbEncoderRight.ticks;
-    update(left);
-    update(right);
-}
-
-/**
- * @brief Updates the parameters for one of the encoders.
- */
-inline void update(ctrlParams_t* p) {
+void update(ctrlParams_t* p) {
     p->travel_mm = (p->ticks - p->prevTicks) * p->mmsPerTick;
     p->prevTicks = p->ticks;
-    p->speed_mm_s = p->travel_mm / (PI_INTERVAL_MSEC * MSEC_PER_SEC);
-    p->error_mm_s = (p->targetSpeed_mm_s - p->speed_mm_s); // / targetSpeed[L]_mm_s * 100.0;
-    p->correction = (p->error_mm_s * KP) + (p->integralError_mm_s * KI);
+    p->speed_mm_s = (p->travel_mm / PI_INTERVAL_MSEC) * MSEC_PER_SEC;
+    /* TODO
+     * This only works if you go forward! The controller does not account for
+     * the direction in which the wheel is supposed to rotate.
+     */
+    p->error_mm_s = (p->targetSpeed_mm_s - p->speed_mm_s);
+    p->controlAction = (p->error_mm_s * KP) + (p->integralError_mm_s * KI);
     p->integralError_mm_s += p->error_mm_s;
+}
+
+/**
+ * @brief Clamps the controlAction to a value in the range (0,1]. To avoid
+ * overloading the motors in the event of a lockup, the control loop
+ * is terminated after a number of Clamping events.
+ *
+ * @param p The structure containing the parameters of the Controller at the
+ *          current iteration.
+ */
+int clamp(ctrlParams_t* p) {
+    // Quando il motore è in STALLO, passa il massimo della corrente... questo
+    // può essere problematico! Il cavo infatti si scalda, e gli avvolgimenti
+    // sul motore si scaldano e la cosa può portare alla rottura dello smalto
+    // e alla conseguente rottura del motore.
+    static unsigned int events = 0;
+    if(p->controlAction > 1.f) {
+        p->controlAction = 1.f;
+	    events++;
+    } else if(p->controlAction <= 0.f) {
+	    p->controlAction = 0.1f;
+	    events++;
+    }
+    return(events > PWM_CLAMPING_EVENTS_MAX);
 }
 
 /**
@@ -175,7 +171,7 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L,
         .targetSpeed_mm_s = targetSpeed_mm_s_L,
         .error_mm_s = 0,
         .integralError_mm_s = 0,
-        .correction = 0,
+        .controlAction = 0,
         .mmsPerTick = (LEFT_WHEEL_RAY_MM * 2 * M_PI) /
                       (TICKS_PER_REVOLUTION * TRANSMISSION_RATIO)
     };
@@ -189,7 +185,7 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L,
         .targetSpeed_mm_s = targetSpeed_mm_s_R,
         .error_mm_s = 0,
         .integralError_mm_s = 0,
-        .correction = 0,
+        .controlAction = 0,
         .mmsPerTick = (RIGHT_WHEEL_RAY_MM * 2 * M_PI) /
                       (TICKS_PER_REVOLUTION * TRANSMISSION_RATIO)
     };
@@ -198,13 +194,22 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L,
     cbMotorMove(&cbMotorRight, forward, right.dutyCyc);
 
     while (distFromGoal_mm > 0.f) {
-        updateAll(&left, &right);
-        if(left.speed_mm_s > 1.f)
-            cbMotorMove(&cbMotorLeft, forward,
-                        left.dutyCyc + left.correction - right.correction);
-        if(right.speed_mm_s > 1.f)
-            cbMotorMove(&cbMotorLeft, forward,
-                        right.dutyCyc + right.correction - left.correction);
+        /* Copying the ticks should be done as quickly as possible to avoid an
+         * ISR interrupt from happening in between the copies. Consider
+         * disabling the encoder callback temporarily if problems arise.
+         */
+        left.ticks = cbEncoderLeft.ticks;
+        right.ticks = cbEncoderRight.ticks;
+        //printf("dT_L: %d, dT_R: %d\n", left.ticks - left.prevTicks, right.ticks - right.prevTicks);
+        update(&left);
+        update(&right);
+    	//printf("t_L: %f, t_R: %f\n", left.travel_mm, right.travel_mm);
+        //printf("dFG: %f, cA_L: %f, cA_R: %f\n", distFromGoal_mm, left.controlAction, right.controlAction);
+	    //printf("tS: %f, cS_L: %f, cS_L: %f\n", targetSpeed_mm_s_L, left.speed_mm_s, right.speed_mm_s);
+        if(clamp(&left)) return;
+        if(clamp(&right)) return;
+        cbMotorMove(&cbMotorLeft, forward, left.controlAction);
+       	cbMotorMove(&cbMotorRight, forward, right.controlAction);
         distFromGoal_mm -= (left.travel_mm + right.travel_mm) / 2;
         sleep(PI_INTERVAL_MSEC);
     }
@@ -213,6 +218,6 @@ void control(float distFromGoal_mm, float targetSpeed_mm_s_L,
 int main(void) {
     init();
     atexit(terminate);
-    control(500.f, 10.0f, 10.0f, 1.0, 1.0);
+    control(500.f, 50.0f, 50.0f, .75f, .75f);
     exit(EXIT_SUCCESS);
 }
