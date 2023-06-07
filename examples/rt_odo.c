@@ -139,9 +139,9 @@ void cbTerminate() {
  *
  * @return On success, 0; on failure -1. The error code is stored in errno
  */
-static inline int sched_setattr(pid_t pid, 
-								const struct sched_attr* attr, 
-								unsigned int flags) {  
+static inline int sched_setattr(pid_t pid,
+								const struct sched_attr* attr,
+								unsigned int flags) {
     // TODO who knows what "flags" does? Is
     // it the same as "sched_attr.flags"?
     return syscall(__NR_sched_setattr, pid, attr, flags);
@@ -189,24 +189,24 @@ void* cbrtUpdateTicksEntryPoint(void* args) {
 
     for (;;) {
         // BEGIN Worker code
-        if (pthread_mutex_trylock(&ticksMutex) != 0) {                                      
+        if (pthread_mutex_trylock(&ticksMutex) != 0) {
     		if (errno == EBUSY) {
-    			// The mutex was busy, yielding...                                                    
-      			sched_yield();                            
-    		} else {                                                                      
-      			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_trylock");                                  
-      			exit(EXIT_FAILURE);                                                                  
-    		}  
+    			// The mutex was busy, yielding...
+      			sched_yield();
+    		} else {
+      			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_trylock");
+      			exit(EXIT_FAILURE);
+    		}
     	} else {
 			// CRITICAL SECTION
     		// We have the lock on the mutex and we can update the ticks
-    		
+
         	ticks_L = cbEncoderLeft.ticks;
         	ticks_R = cbEncoderRight.ticks;
-        	if (pthread_mutex_unlock(&ticksMutex) != 0) {                                      
-    			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_unlock");                                     
-    			exit(EXIT_FAILURE);                                                                    
-  			}            
+        	if (pthread_mutex_unlock(&ticksMutex) != 0) {
+    			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_unlock");
+    			exit(EXIT_FAILURE);
+  			}
     	}
     	pthread_testcancel();
         // END Worker code
@@ -234,7 +234,7 @@ void* cbrtOdoEntryPoint(void* args) {
                               .sched_runtime = ODO_RUNTIME, // ns
                               .sched_period = ODO_PERIOD, // ns
                               .sched_deadline = ODO_DEADLINE}; // ns
-    (void)signal(SIGXCPU, cbrtDlMissHandler);  // Register signal handler
+    (void) signal(SIGXCPU, cbrtDlMissHandler);  // Register signal handler
     if (sched_setattr(0, &attr, 0)) {
         perror("cbrtEntryPoint: sched_setattr");
         exit(EXIT_FAILURE);
@@ -257,27 +257,27 @@ void* cbrtOdoEntryPoint(void* args) {
 
     for (;;) {
         // BEGIN Worker code
-        if (pthread_mutex_trylock(&ticksMutex) != 0) {                                      
+        if (pthread_mutex_trylock(&ticksMutex) != 0) {
     		if (errno == EBUSY) {
-    			// The mutex was busy, yielding...                                                    
-      			sched_yield();                            
-    		} else {                                                                      
-      			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_trylock");                                  
-      			exit(EXIT_FAILURE);                                                                  
-    		}  
+    			// The mutex was busy, yielding...
+      			sched_yield();
+    		} else {
+      			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_trylock");
+      			exit(EXIT_FAILURE);
+    		}
     	} else {
 			// CRITICAL SECTION
     		// We have the lock on the mutex and we can update the ticks
         	myTicks_L = ticks_L;
         	myTicks_R = ticks_R;
-        	if (pthread_mutex_unlock(&ticksMutex) != 0) {                                      
-    			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_unlock");                                     
-    			exit(EXIT_FAILURE);                                                                    
-  			}            
+        	if (pthread_mutex_unlock(&ticksMutex) != 0) {
+    			perror("cbrtUpdateTicksEntryPoint: pthread_mutex_unlock");
+    			exit(EXIT_FAILURE);
+  			}
     	}
     	travel_mm_L = (myTicks_L - prevTicks_L) * mmsPerTick_L;
     	prevTicks_L = myTicks_L;
-    	// speed_mm_s_L = (travel_mm_L / tsTickNs(&clock)) * NSEC_PER_MSEC;	
+    	// speed_mm_s_L = (travel_mm_L / tsTickNs(&clock)) * NSEC_PER_MSEC;
     	travel_mm_R = (myTicks_R - prevTicks_R) * mmsPerTick_R;
     	prevTicks_R = myTicks_R;
         distFromGoal_mm -= (travel_mm_L + travel_mm_R) / 2;
@@ -300,25 +300,25 @@ task_t taskUpdateTicks = { .tid = 0, .entry = cbrtUpdateTicksEntryPoint };
 
 int main(void) {
     cbInit();
-    // Initialize the mutex 
-    if (pthread_mutex_init(&ticksMutex, NULL) != 0) {                                  
-    	perror("main: pthread_mutex_init");                                       
-    	exit(EXIT_FAILURE);                                                                    
+    // Initialize the mutex
+    if (pthread_mutex_init(&ticksMutex, NULL) != 0) {
+    	perror("main: pthread_mutex_init");
+    	exit(EXIT_FAILURE);
   	}
   	{ // Create the tasks
 		if(pthread_create(&(taskOdo.tid), NULL, taskOdo.entry, NULL) != 0) {
 			perror("main: pthread_create: taskOdo");
 			exit(EXIT_FAILURE);
 		} else {
-	    	printf("main: taskOdo: Created.\n");
+	    	puts("main: taskOdo: Created.");
 		}
-		
-		if(pthread_create(&(taskUpdateTicks.tid), NULL, 
+
+		if(pthread_create(&(taskUpdateTicks.tid), NULL,
 						  taskUpdateTicks.entry, NULL) != 0) {
 			perror("main: pthread_create: taskUpdateTicks");
 			exit(EXIT_FAILURE);
 		} else {
-			printf("main: taskUpdateTicks: Created.\n");
+			puts("main: taskUpdateTicks: Created.");
 		}
 	}
 	{ // Wait for task completion
@@ -326,23 +326,23 @@ int main(void) {
 	    	perror("main: pthread_join");
 	    	exit(EXIT_FAILURE);
 	    } else {
-	    	printf("main: taskOdo: Completed!\n");
-	    	if (pthread_cancel(taskUpdateTicks.tid) != 0) {                                            
+	    	puts("main: taskOdo: Completed!");
+	    	if(pthread_cancel(taskUpdateTicks.tid) != 0) {
    				perror("main: pthread_cancel");
    				exit(EXIT_FAILURE);
- 			}  
+ 			}
 	    }
 
 	    if(pthread_join(taskUpdateTicks.tid, NULL) != 0) {
 	    	perror("main: pthread_join");
 	    	exit(EXIT_FAILURE);
 	    } else {
-	    	printf("main: taskUpdateTicks: Completed!\n");
+	    	puts("main: taskUpdateTicks: Completed!");
 	    }
 	}
-    if (pthread_mutex_destroy(&ticksMutex) != 0) {                                  
-    	perror("main: pthread_mutex_destroy");                                       
-    	exit(EXIT_FAILURE);                                                                    
+    if (pthread_mutex_destroy(&ticksMutex) != 0) {
+    	perror("main: pthread_mutex_destroy");
+    	exit(EXIT_FAILURE);
   	}
   	cbTerminate();
     exit(EXIT_SUCCESS);
