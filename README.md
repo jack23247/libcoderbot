@@ -13,12 +13,15 @@ More informations about the CoderBot platform are available on the [project's we
 
 ### CoderBot V5 Shield Feature Support Matrix
 
-| Feature               | Support |
-| :-------------------- | ------- |
-| Motor Driver (L293DD) | Yes     |
-| Encoders              | Yes     |
-| Sonars                | No      |
-| MPU (ATMega328)       | Planned |
+| Feature               | Bus  | Support |
+| :-------------------- | ---- | ------- |
+| Motor Driver (L293DD) | GPIO | Yes     |
+| Encoders              | GPIO | Yes     |
+| Sonars                | GPIO | No      |
+| MPU (LSM9DS1)         | I2C  | Planned |
+| MCU (ATMega 328P)     | SPI  | Planned |
+
+An overview of the shield's hardware is available in CoderBot's [Developer Docs](https://dev.coderbot.org/Hardware_Architecture.html), and schematics are open-source and available [here](https://github.com/CoderBotOrg/hardware).
 
 ## Prerequisites
 
@@ -33,6 +36,8 @@ To install all of the above you can use the command:
 ```
 apt install pigpio git build-essential doxygen 
 ```
+
+We assume you're building and running the library and the examples directly on the CoderBot's Raspberry Pi, running Raspbian OS.
 
 ## License
 
