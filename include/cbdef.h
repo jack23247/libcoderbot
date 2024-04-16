@@ -1,5 +1,5 @@
 /**
- * @file gpio.h
+ * @file cbdef.h
  * @author Jacopo Maltagliati
  * @date 8 Apr 2023
  * @brief Library for interfacing with the CoderBot mobile platform.
@@ -21,8 +21,17 @@
  * libcoderbot. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef GPIO_H
-#define GPIO_H
+#ifndef CBDEF_H
+#define CBDEF_H
+
+// Condition Codes ---------------------------------------------------------- //
+
+#define CB_SUCCESS 0 //< Condition code for Success
+#define CB_FAILURE 1 //< Condition code for General Failure
+#define CB_ENOMODE 2 //< Condition code for when a mode cannot be inferred 
+#define CB_ERANGE 3 //< Condition code for when a variable is out of range
+
+// GPIO Definitions --------------------------------------------------------- //
 
 #define GPIO_PIN_NC -1
 
@@ -59,8 +68,12 @@ typedef enum {
      */
     PIN_LEFT_FORWARD = 17, // L293DD Pin 2, Ch.1
     PIN_LEFT_BACKWARD = 18, // L293DD Pin 9, Ch.2
-    PIN_RIGHT_FORWARD = 22, // L293DD Pin 12, Ch.3
-    PIN_RIGHT_BACKWARD = 23, // L293DD Pin 19, Ch.4
+    PIN_RIGHT_FORWARD = 23, // L293DD Pin 12, Ch.3
+    PIN_RIGHT_BACKWARD = 22, // L293DD Pin 19, Ch.4
+    
+    // XXX Understand why I had to invert the right motor pins to make it go in
+    //     the correct direction. Is my L293DD pinout bogus??
+
 
 /* Unused
     PIN_PUSHBUTTON = 16, // 11
@@ -107,6 +120,12 @@ typedef enum {
      */ 
     PIN_ENCODER_RIGHT_A = 24,
     PIN_ENCODER_RIGHT_B = 25
-} CODERBOT_V5_GPIO;
+} cbGPIOv5;
 
-#endif // GPIO_H
+// Common Typedefs ---------------------------------------------------------- //
+
+typedef cbGPIOv5 cbGPIO_t;
+
+typedef enum { backward = -1, forward = 1 } cbDir_t;
+
+#endif // CBDEF_H

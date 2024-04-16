@@ -25,18 +25,21 @@
 
 #include "encoder.h"
 
+void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata);
+void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata);
+
 /**
  * @brief Initializes PiGPIO to service the Pulses from an Encoder.
  * @param pin_a The PIN connected to Channel A.
  * @param pin_a The PIN connected to Channel B.
  */
-void cbEncoderGPIOinit(int pin_a, int pin_b) {
+void cbEncoderGPIOinit(const cbEncoder_t* enc) {
     // Channel A
-    gpioSetMode(pin_a, PI_INPUT);
-    gpioSetPullUpDown(pin_a, PI_PUD_UP);
+    gpioSetMode(enc->pin_a, PI_INPUT);
+    gpioSetPullUpDown(enc->pin_a, PI_PUD_UP);
     // Channel B
-    gpioSetMode(pin_b, PI_INPUT);
-    gpioSetPullUpDown(pin_b, PI_PUD_UP);
+    gpioSetMode(enc->pin_b, PI_INPUT);
+    gpioSetPullUpDown(enc->pin_b, PI_PUD_UP);
 }
 
 /**
@@ -48,11 +51,11 @@ void cbEncoderGPIOinit(int pin_a, int pin_b) {
  * @param timeout A time in milliseconds after which the ISR is terminated.
  * @link  https://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc
  */
-void cbEncoderRegisterISRs(const cbEncoder_t* enc, int pin_a, int pin_b, int timeout) {
+void cbEncoderRegisterISRs(const cbEncoder_t* enc, int timeout) {
     // Channel A
-    gpioSetISRFuncEx(pin_a, EITHER_EDGE, timeout, cbEncoderISRa, (void*)enc);
+    gpioSetISRFuncEx(enc->pin_a, EITHER_EDGE, timeout, cbEncoderISRa, (void*)enc);
     // Channel B
-    gpioSetISRFuncEx(pin_b, EITHER_EDGE, timeout, cbEncoderISRb, (void*)enc);
+    gpioSetISRFuncEx(enc->pin_b, EITHER_EDGE, timeout, cbEncoderISRb, (void*)enc);
 }
 
 /**
@@ -60,11 +63,11 @@ void cbEncoderRegisterISRs(const cbEncoder_t* enc, int pin_a, int pin_b, int tim
  * @param pin_a The PIN connected to Channel A.
  * @param pin_a The PIN connected to Channel B.
  */
-void cbEncoderCancelISRs(int pin_a, int pin_b) {
+void cbEncoderCancelISRs(const cbEncoder_t* enc) {
     // Channel A
-    gpioSetISRFunc(pin_a, EITHER_EDGE, 0, NULL);
+    gpioSetISRFunc(enc->pin_a, EITHER_EDGE, 0, NULL);
     // Channel B
-    gpioSetISRFunc(pin_b, EITHER_EDGE, 0, NULL);
+    gpioSetISRFunc(enc->pin_b, EITHER_EDGE, 0, NULL);
 }
 
 /**
@@ -81,11 +84,13 @@ void cbEncoderISRa(int gpio, int level, uint32_t tick, void *userdata) {
     cbEncoder_t* enc = (cbEncoder_t*)userdata;
     if(gpio == enc->last_gpio) return; // Debounce
     enc->last_gpio = gpio; 
-    enc->a = level;
-    if(level ^ enc->b) { // Either one of A or B is 1 
-        enc->direction = 1;    
+    enc->level_a = level;
+    if(level ^ enc->level_b) { // Either one of A or B is 1 
+        enc->direction = forward;
+        enc->ticks += enc->direction;  
+    } else {
+        enc->bad_ticks++; // Self-diagnostics
     }
-    // else Direction unchanged
 }
 
 /**
@@ -102,9 +107,11 @@ void cbEncoderISRb(int gpio, int level, uint32_t tick, void *userdata) {
     cbEncoder_t* enc = (cbEncoder_t*)userdata;
     if(gpio == enc->last_gpio) return; // Debounce
     enc->last_gpio = gpio; 
-    enc->b = level;
-    if(level ^ enc->a) { // Either one of A or B is 1 
-        enc->direction = -1;    
+    enc->level_b = level;
+    if(level ^ enc->level_a) { // Either one of A or B is 1 
+        enc->direction = backward; 
+        enc->ticks += enc->direction;  
+    } else {
+        enc->bad_ticks++; // Self-diagnostics
     }
-    // else Direction unchanged
 }

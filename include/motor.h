@@ -1,7 +1,7 @@
 /**
- * @file encoder.h
+ * @file motor.h
  * @author Jacopo Maltagliati
- * @date 8 Apr 2023
+ * @date 20 Apr 2023
  * @brief Library for interfacing with the CoderBot mobile platform.
  * @copyright Copyright (c) 2022-23, Jacopo Maltagliati.
  * 
@@ -21,26 +21,22 @@
  * libcoderbot. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ENCODER_H
-#define ENCODER_H
-
-#include <stdint.h>
+#ifndef MOTOR_H
+#define MOTOR_H
 
 #include "cbdef.h"
 
-struct cbEncoder {
-    cbGPIO_t pin_a, pin_b;
-    cbGPIO_t last_gpio;
-    uint16_t level_a, level_b;
+#include <stdbool.h>
+
+struct cbMotor {
+    cbGPIO_t pin_fw, pin_bw;
     cbDir_t direction;
-    int64_t ticks;
-    uint32_t bad_ticks;
 };
 
-typedef struct cbEncoder cbEncoder_t;
+typedef struct cbMotor cbMotor_t;
 
-void cbEncoderGPIOinit(const cbEncoder_t* enc);
-void cbEncoderRegisterISRs(const cbEncoder_t* enc, int timeout);
-void cbEncoderCancelISRs(const cbEncoder_t* enc);
+void cbMotorGPIOinit(const cbMotor_t* motor);
+int cbMotorMove(cbMotor_t* motor, cbDir_t direction, float duty_cycle);
+void cbMotorReset(cbMotor_t* motor);
 
-#endif // ENCODER_H
+#endif // MOTOR_H
