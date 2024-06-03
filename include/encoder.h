@@ -41,6 +41,11 @@ typedef struct cbEncoder cbEncoder_t;
 
 void cbEncoderGPIOinit(const cbEncoder_t* enc);
 void cbEncoderRegisterISRs(const cbEncoder_t* enc, int timeout);
+void cbEncoderRegisterCustomISRs(const cbEncoder_t* enc, unsigned int edge_a,
+                                 void (*isr_a)(int, int, uint32_t, void*),
+                                 unsigned int edge_b,
+                                 void (*isr_b)(int, int, uint32_t, void*),
+                                 int timeout);
 void cbEncoderCancelISRs(const cbEncoder_t* enc);
 
-#endif // ENCODER_H
+#endif  // ENCODER_H
