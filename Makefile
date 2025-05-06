@@ -7,11 +7,10 @@ SRC := $(wildcard $(SDIR)/*.c)
 OBJ := $(SRC:$(SDIR)/%.c=$(ODIR)/%.o)
 
 CFLAGS := -std=c99 -pedantic
-LDFLAGS :=
 LDLIBS := -lpigpio
 
-DEBUG ?= 1
-ifeq (DEBUG, 1)
+DEBUG ?= 0
+ifeq ($(DEBUG), 1)
  CFLAGS += -g -O0 -Wall -Werror -Wextra -DDEBUG
 else
  CFLAGS += -O2 -march=native -DNDEBUG
@@ -28,7 +27,7 @@ $(ODIR):
 	mkdir -p obj/
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS) | $(ODIR)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@ -I$(IDIR)
+	$(CC) $(CFLAGS) -c $< -o $@ -I$(IDIR)
 
 clean:
 	@$(RM) -rv $(ODIR)
