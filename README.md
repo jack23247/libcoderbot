@@ -13,12 +13,15 @@ More informations about the CoderBot platform are available on the [project's we
 
 ### CoderBot V5 Shield Feature Support Matrix
 
-| Feature               | Support |
-| :-------------------- | ------- |
-| Motor Driver (L293DD) | Yes     |
-| Encoders              | Yes     |
-| Sonars                | No      |
-| MPU (ATMega328)       | Planned |
+| Feature               | Bus  | Support |
+| :-------------------- | ---- | ------- |
+| Motor Driver (L293DD) | GPIO | Yes     |
+| Encoders              | GPIO | Yes     |
+| Sonars                | GPIO | No      |
+| MPU (LSM9DS1)         | I2C  | Planned |
+| MCU (ATMega 328P)     | SPI  | Planned |
+
+An overview of the shield's hardware is available in CoderBot's [Developer Docs](https://dev.coderbot.org/Hardware_Architecture.html), and schematics are open-source and available [here](https://github.com/CoderBotOrg/hardware).
 
 ## Prerequisites
 
@@ -36,7 +39,9 @@ apt install pigpio git build-essential doxygen
 
 ## Building
 
-A Makefile is provided for convenience. If you just want to build the library, you can type `make` from the project's root folder. You can `make DEBUG=1` to compile with debugging options enabled (no optimizations, no symbol stripping).
+These instructions assume you're building and running the library and the examples directly on the CoderBot's Raspberry Pi, running Raspberry Pi OS.
+
+A Makefile is provided for convenience. If you just want to build the library, you can type `make` from the project's root folder. You can `make DEBUG=1` to compile with debugging options enabled (no optimizations, no symbol stripping). 
 
 A Doxyfile is provided and can be used for generating the documentation in HTML. To generate the documentation, you can simply invoke `doxygen` from the project's root folder.
 
@@ -76,7 +81,7 @@ int main(void) {
 }
 ```
 
-In this example we assume that the library is located in a subfolder (`libcoderbot/`) of the current working directory.
+In this example we assume that the library is located in a subfolder (`libcoderbot/`) of the current working directory. We use `atexit()` to execute `gpioTerminate()` regardless of where the program ends.
 
 ```shell
 cc stop.c libcoderbot/libcoderbot.a -l pigpio -o stop
@@ -92,7 +97,7 @@ You may need to run it as `root` if your user doesn't have permission to access 
 
 ## License
 
-`libcoderbot` is Copyright © 2023, Jacopo Maltagliati and is released under the
+`libcoderbot` is Copyright © 2023-25, Jacopo Maltagliati and is released under the
 GNU GPLv3 License. A copy of the license is provided in `COPYING`.
 
 The original Python API is Copyright © 2014-2019 Roberto Previtera, Antonio Vivace, CoderBot contributors and is released under the GNU GPLv2 License. See `CODERBOT_LICENSE` for more informations.
